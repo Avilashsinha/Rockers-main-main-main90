@@ -1,0 +1,13 @@
+{
+  "name": "rockers-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "cloudinary": "^1.41.0",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

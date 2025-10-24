@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="description"
+    content="CampusNotes - Your all-in-one place for study notes and helpful images. Upload, share, and learn smarter." />
+  <title>CampusNotes — Notes & Images</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" onerror="console.error('CSS failed to load from style.css')"
+    onload="console.log('CSS loaded successfully')" />
+  <style>
+    /* Fallback styles in case external CSS doesn't load */
+    :root {
+      --bg1: #f3e8ff;
+      --bg2: #faf5ff;
+      --accent1: #7c3aed;
+      --accent2: #a855f7;
+      --card-bg: rgba(255, 255, 255, 0.7);
+      --shadow: rgba(0, 0, 0, 0.08);
+      --radius: 16px;
+      --text-dark: #1f1f1f;
+      --text-light: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text-dark);
+      min-height: 100vh;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 1rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .theme-toggle {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    section {
+      display: none;
+      padding: 2rem 0;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    #home {
+      text-align: center;
+    }
+
+    #home h2 {
+      font-size: 2.4rem;
+      color: var(--accent1);
+      margin-bottom: 1rem;
+    }
+
+    #home p {
+      color: var(--text-light);
+      max-width: 600px;
+      margin: 1rem auto;
+      line-height: 1.6;
+    }
+
+    .cta {
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.9rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    .cta:hover {
+      transform: scale(1.05);
+    }
+
+    #upload-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: 0 10px 25px var(--shadow);
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      margin-top: 0.4rem;
+      padding: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    button {
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      color: white;
+      border: none;
+      padding: 0.8rem 1.4rem;
+      border-radius: 10px;
+      font-weight: 600;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-light);
+      padding: 2rem;
+      font-size: 0.9rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+  </style>
+  <script>
+    // Debug script to check if CSS is loading
+    window.addEventListener('load', function () {
+      console.log('Page loaded. Current hostname:', window.location.hostname);
+      console.log('Current URL:', window.location.href);
+
+      // Check if CSS is applied by testing a computed style
+      setTimeout(function () {
+        const header = document.querySelector('header');
+        if (header) {
+          const style = window.getComputedStyle(header);
+          console.log('Header background:', style.background);
+          if (!style.background.includes('gradient') && !style.background.includes('rgb')) {
+            console.warn('CSS styles not applied - external CSS may have failed to load');
+          } else {
+            console.log('CSS styles are working correctly');
+          }
+        }
+      }, 1000);
+    });
+  </script>
+</head>
+
+<body>
+  <header>
+    <h1>CampusNotes</h1>
+    <div>
+      <nav>
+        <a onclick="showSection('home')">Home</a>
+        <a onclick="showSection('upload')">Upload</a>
+        <a onclick="showSection('notes')">Notes</a>
+        <a onclick="showSection('images')">Images</a>
+      </nav>
+      <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="active">
+      <h2>Welcome to CampusNotes</h2>
+      <p>Your all-in-one place for study notes and helpful images. Upload, share, and learn smarter — anywhere, anytime.
+      </p>
+      <button class="cta" onclick="startUploading()">Start Uploading 🚀</button>
+    </section>
+
+    <section id="upload">
+      <div id="upload-box">
+        <h2>Upload Your Note or Image</h2>
+        <label>Title:</label>
+        <input type="text" id="title" placeholder="e.g. Physics Notes" />
+        <label>Subject:</label>
+        <input type="text" id="subject" placeholder="e.g. Physics" />
+        <label>Description:</label>
+        <textarea id="description" placeholder="Short description..."></textarea>
+        <label>Type:</label>
+        <select id="type">
+          <option value="note">Note (PDF/Text)</option>
+          <option value="image">Image (JPG/PNG)</option>
+        </select>
+        <label>Choose File:</label>
+        <input type="file" id="file" accept=".pdf,.jpg,.png,.jpeg,.txt,.docx" />
+        <button onclick="upload()">Upload</button>
+      </div>
+    </section>
+
+    <section id="notes">
+      <h2>All Notes</h2>
+      <div id="notes-list" class="grid"></div>
+    </section>
+
+    <section id="images">
+      <h2>All Images</h2>
+      <div id="images-list" class="grid"></div>
+    </section>
+  </main>
+
+  <footer>
+    © 2025 CampusNotes — Designed by <b>Avilash Sinha Roy</b>
+  </footer>
+
+  <script src="script.js" onerror="console.error('Script failed to load')"
+    onload="console.log('Script loaded successfully')"></script>
+  <script>
+    // Fallback script in case external JS doesn't load
+    if (typeof showSection === 'undefined') {
+      console.warn('External script not loaded, using fallback');
+      function showSection(sectionName) {
+        const sections = document.querySelectorAll("main section");
+        sections.forEach(section => section.classList.remove("active"));
+        const targetSection = document.getElementById(sectionName);
+        if (targetSection) targetSection.classList.add("active");
+      }
+      function startUploading() { showSection('upload'); }
+      function toggleTheme() {
+        document.body.classList.toggle('dark-theme');
+        const toggle = document.querySelector('.theme-toggle');
+        toggle.textContent = document.body.classList.contains('dark-theme') ? '☀️' : '🌙';
+      }
+    }
+  </script>
+</body>
+
+</html>
