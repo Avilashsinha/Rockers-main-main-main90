@@ -2,9 +2,9 @@ import express from 'express';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getNotes, addNote, deleteNote, findNote } from './api/store.js';
 
 dotenv.config();
 
@@ -14,170 +14,100 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ✅ Cloudinary config
+// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dwm9m3dwk",
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ✅ Multer setup
+// Configure multer
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
-// ✅ Middleware
+// Middleware
 app.use(express.json());
 app.use(express.static('.'));
+
+// CORS
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// ✅ Path to JSON data file
-const DATA_FILE = path.join(__dirname, 'api', 'notes-data.json');
-
-// Ensure the data directory exists
-if (!fs.existsSync(path.join(__dirname, 'api'))) {
-  fs.mkdirSync(path.join(__dirname, 'api'));
-}
-
-// Utility functions for local JSON storage
-function getNotes() {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    const data = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(data || '[]');
-  } catch (err) {
-    console.error('Error reading notes-data.json:', err);
-    return [];
-  }
-}
-
-function saveNotes(notes) {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(notes, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing notes-data.json:', err);
-  }
-}
-
-// ✅ Routes
-
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ status: 'OK', message: 'CampusNotes API is running' });
 });
 
 // Get all notes
 app.get('/api/notes', (req, res) => {
-  res.json(getNotes());
+  try {
+    const notes = getNotes();
+    res.json(notes);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load notes' });
+  }
 });
 
-// Alias for /api/notes
-app.get('/api/data', (req, res) => {
-  res.json(getNotes());
-});
-
-// ✅ Upload route
+// Upload route
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     const { title, subject, desc, type } = req.body;
-    if (!req.file || !title) {
-      return res.status(400).json({ error: 'File and title are required' });
-    }
+    if (!req.file || !title) return res.status(400).json({ error: "File and title are required" });
 
     const resourceType = type === 'image' ? 'image' : 'raw';
-
-    // Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          resource_type: resourceType,
-          folder: `campusnotes/${type || 'notes'}`,
-          public_id: `${Date.now()}_${req.file.originalname.split('.')[0]}`
-        },
-        (error, result) => (error ? reject(error) : resolve(result))
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: resourceType, folder: `campusnotes/${type || 'files'}` },
+        (err, result) => (err ? reject(err) : resolve(result))
       );
-      uploadStream.end(req.file.buffer);
+      stream.end(req.file.buffer);
     });
 
-    // Create note object
     const note = {
       id: Date.now().toString(),
       title: title.trim(),
       subject: subject?.trim() || '',
       desc: desc?.trim() || '',
       type: type || 'note',
-      fileName: req.file.originalname,
       fileUrl: uploadResult.secure_url,
       publicId: uploadResult.public_id,
+      fileName: req.file.originalname,
       fileType: req.file.mimetype,
       fileSize: req.file.size,
-      createdAt: new Date()
+      createdAt: new Date().toISOString(),
     };
 
-    // Save to JSON
-    const notes = getNotes();
-    notes.push(note);
-    saveNotes(notes);
-
-    res.status(201).json({ message: '✅ File uploaded successfully!', file: note });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'Upload failed: ' + error.message });
+    addNote(note);
+    res.status(201).json({ message: '✅ File uploaded successfully!', note });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'Upload failed: ' + err.message });
   }
 });
 
-// ✅ Delete note
+// Delete
 app.delete('/api/data/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const notes = getNotes();
-    const note = notes.find(n => n.id === id);
+    const note = findNote(req.params.id);
+    if (!note) return res.status(404).json({ error: 'Note not found' });
 
-    if (!note) {
-      return res.status(404).json({ error: 'File not found' });
-    }
+    await cloudinary.uploader.destroy(note.publicId, {
+      resource_type: note.type === 'image' ? 'image' : 'raw',
+    });
 
-    // Delete from Cloudinary if exists
-    if (note.publicId) {
-      try {
-        const resourceType = note.type === 'image' ? 'image' : 'raw';
-        await cloudinary.uploader.destroy(note.publicId, { resource_type: resourceType });
-      } catch (err) {
-        console.error('Cloudinary delete error:', err);
-      }
-    }
-
-    const updatedNotes = notes.filter(n => n.id !== id);
-    saveNotes(updatedNotes);
-    res.json({ message: '✅ File deleted successfully!' });
-  } catch (error) {
-    console.error('Delete error:', error);
-    res.status(500).json({ error: 'Delete failed: ' + error.message });
+    deleteNote(req.params.id);
+    res.json({ message: 'Deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Delete failed' });
   }
 });
 
-// ✅ Start server
-app.listen(port, () => {
-  console.log(`
-╔════════════════════════════════════════════════════════════╗
-║            🚀 CampusNotes Development Server              ║
-╠════════════════════════════════════════════════════════════╣
-║  Server running at: http://localhost:${port}                 ║
-║  API endpoints:                                            ║
-║    - GET  /api/health                                      ║
-║    - GET  /api/notes                                       ║
-║    - GET  /api/data                                        ║
-║    - POST /api/upload                                      ║
-║    - DELETE /api/data/:id                                  ║
-║                                                            ║
-║  💾 Data saved to: api/notes-data.json                    ║
-╚════════════════════════════════════════════════════════════╝
-  `);
-});
+app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
